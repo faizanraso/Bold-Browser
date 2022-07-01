@@ -45,7 +45,10 @@ def request(url):
         header, value = line.split(":", 1)
         headers[header.lower()] = value.strip() # removes whitespaces
 
-    # these two will only be found when the data is sent in an unusual way
+    headers["connection"] = "close"
+    headers["user-agent"] = "user-agent-header"
+
+    # these will only be found when the data is sent in an unusual way
     assert "trasnfer-encoding" not in headers
     assert "content-encoding" not in headers
 
@@ -56,14 +59,19 @@ def request(url):
     return headers, body
 
 def show(body):
-    # printing all text in body (excludes HTML tags)
+    # printing all text in body (excludes HTML tags and styles)
     in_angle = False
+    number_of_close_braces = body.count("}")
+    number_of_braces_count = 0
+
     for c in body:
         if c == "<":
             in_angle = True
         elif c == ">":
             in_angle = False
-        elif not in_angle:
+        elif c == "}":
+            number_of_braces_count += 1
+        elif not in_angle and number_of_braces_count == number_of_close_braces:
             print(c, end="")
 
 
