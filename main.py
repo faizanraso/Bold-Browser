@@ -5,9 +5,9 @@ import ssl
 def request(url):
     # checking if url is valid
     scheme, url = url.split("://", 1)
-    assert scheme in ["http", "https"], "Unknown Scheme {}".format(scheme)
+    assert scheme in ["http", "https"], \
+        "Unknown Scheme {}".format(scheme)
 
-    url = url[len("http://"):]
     host, path = url.split("/", 1)
     path = "/" + path
 
@@ -18,7 +18,18 @@ def request(url):
         proto=socket.IPPROTO_TCP
     )
 
-    s.connect((host, 80))
+    port = 80 if scheme == "http" else 443
+
+    # if website uses hhtps, use ssl to encrypt the connection
+    if scheme == "https":
+        s = encryptConnection(s=s, host=host)
+
+    # if a custom port was defined, extract it from host
+    if ":" in host:
+        host, port = host.split(":", 1)
+        port = int(port)
+
+    s.connect((host, port))
     s.send("GET {} HTTP/1.0\r\n".format(path).encode("utf8") + "Host: {} \r\n\r\n".format(host).encode("utf8"))
     response = s.makefile("r", encoding="utf8", newline="\r\n")
 
@@ -66,4 +77,5 @@ def encryptConnection(s, host):
 
 
 if __name__ == "__main__":
-    load(sys.argv[1])
+    #load(sys.argv[1])
+    load("http://example.org/")
