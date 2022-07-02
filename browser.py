@@ -2,7 +2,16 @@ import sys
 import socket
 import ssl
 
+view_source = False
+
 def request(url):
+
+    # check if url entered is in view-source mode
+    if url.startswith("view-source"):
+        url = url[len("view-source:"):]
+        global view_source 
+        view_source = True
+
     # checking if url is valid
     scheme, url = url.split("://", 1)
     assert scheme in ["http", "https"], \
@@ -52,27 +61,35 @@ def request(url):
     assert "trasnfer-encoding" not in headers
     assert "content-encoding" not in headers
 
-    # save the rest of the response as body
+    # save the rest of the response as body, and replace &gt and &lt with operand symbol
     body = response.read()
+    body = body.replace("&gt;", ">")
+    body = body.replace("&lt;", "<")
     s.close()
 
     return headers, body
 
 def show(body):
+
     # printing all text in body (excludes HTML tags and styles)
     in_angle = False
     number_of_close_braces = body.count("}")
     number_of_braces_count = 0
 
-    for c in body:
-        if c == "<":
-            in_angle = True
-        elif c == ">":
-            in_angle = False
-        elif c == "}":
-            number_of_braces_count += 1
-        elif not in_angle and number_of_braces_count == number_of_close_braces:
+    #when in view source mode, display everything, including tags
+    if view_source: 
+        for c in body:
             print(c, end="")
+    else:
+        for c in body:
+            if c == "<":
+                in_angle = True
+            elif c == ">":
+                in_angle = False
+            elif c == "}":
+                number_of_braces_count += 1
+            elif not in_angle and number_of_braces_count == number_of_close_braces:
+                print(c, end="")
 
 
 def load(url):
@@ -86,4 +103,4 @@ def encryptConnection(s, host):
 
 if __name__ == "__main__":
     #load(sys.argv[1])
-    load("http://example.org/")
+    load("view-source:http://example.org/")
