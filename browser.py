@@ -1,8 +1,37 @@
 import sys
 import socket
 import ssl
+import tkinter
+from tkinter.messagebox import YES
+WIDTH, HEIGHT = 800, 600
 
 view_source = False
+
+class Browser:
+    # initializing tkinter gui
+    def __init__(self): 
+        self.window = tkinter.Tk()
+        self.canvas = tkinter.Canvas(
+            self.window,
+            height=HEIGHT,
+            width=WIDTH
+        )
+        self.canvas.pack()
+    
+    def load(self, url):
+        headers, body = request(url)
+        text = lex(body)
+
+        HSTEP, VSTEP = 10, 18
+        cursor_x, cursor_y = HSTEP, VSTEP
+        for c in text:
+            self.canvas.create_text(cursor_x, cursor_y, text=c)
+            
+            # changing placement of where text will be generated
+            cursor_x += HSTEP
+            if cursor_x > (WIDTH-HSTEP):
+                cursor_x = HSTEP
+                cursor_y += VSTEP
 
 def request(url):
 
@@ -69,17 +98,18 @@ def request(url):
 
     return headers, body
 
-def show(body):
+def lex(body):
 
     # printing all text in body (excludes HTML tags and styles)
     in_angle = False
     number_of_close_braces = body.count("}")
     number_of_braces_count = 0
+    text = ""
 
     #when in view source mode, display everything, including tags
     if view_source: 
         for c in body:
-            print(c, end="")
+            text += c
     else:
         for c in body:
             if c == "<":
@@ -89,12 +119,8 @@ def show(body):
             elif c == "}":
                 number_of_braces_count += 1
             elif not in_angle and number_of_braces_count == number_of_close_braces:
-                print(c, end="")
-
-
-def load(url):
-    headers, body = request(url)
-    show(body)
+                text += c
+    return text
 
 def encryptConnection(s, host):
     ctx = ssl.create_default_context()
@@ -102,5 +128,8 @@ def encryptConnection(s, host):
 
 
 if __name__ == "__main__":
-    #load(sys.argv[1])
-    load("view-source:http://example.org/")
+    browser = Browser()
+    # Browser.load(sys.argv[1])
+    # Browser.load(browser, "http://example.org/")
+    Browser.load(browser, "https://www.zggdwx.com/xiyou/1.html")
+    tkinter.mainloop()
