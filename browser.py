@@ -1,44 +1,89 @@
+from distutils.sysconfig import customize_compiler
 import sys
 import socket
 import ssl
 import tkinter
 from tkinter.messagebox import YES
-WIDTH, HEIGHT = 800, 600
 
+WIDTH, HEIGHT = 800, 600
+HSTEP, VSTEP = 10, 18
+SCROLL_STEP = 100
 view_source = False
+
 
 class Browser:
     # initializing tkinter gui
-    def __init__(self): 
+    def __init__(self):
         self.window = tkinter.Tk()
+
+        self.scroll = 0
+        self.window.bind("<Down>", self.scrolldown)
+        self.window.bind("<Up>", self.scrollup)
+        self.window.bind("<MouseWheel>", self.mousewheelscroll)
+
         self.canvas = tkinter.Canvas(
             self.window,
             height=HEIGHT,
             width=WIDTH
         )
+
         self.canvas.pack()
-    
+
+    # functions to allow scrolling
+    def scrolldown(self, e):
+        self.scroll += SCROLL_STEP
+        self.draw()
+
+    def scrollup(self, e):
+        if self.scroll >= SCROLL_STEP:
+            self.scroll -= SCROLL_STEP
+            self.draw()
+
+    def mousewheelscroll(self, e):
+        if(e.delta == -1 or e.delta == -120):
+            self.scrolldown(self)
+        if(e.delta == 1 or e.delta == 120):
+            self.scrollup(self)
+
     def load(self, url):
         headers, body = request(url)
         text = lex(body)
+        self.display_list = layout(text=text)
+        self.draw()
 
-        HSTEP, VSTEP = 10, 18
-        cursor_x, cursor_y = HSTEP, VSTEP
-        for c in text:
-            self.canvas.create_text(cursor_x, cursor_y, text=c)
-            
-            # changing placement of where text will be generated
-            cursor_x += HSTEP
-            if cursor_x > (WIDTH-HSTEP):
-                cursor_x = HSTEP
-                cursor_y += VSTEP
+    # draw to page
+    def draw(self):
+        self.canvas.delete("all")
+        for x, y, c in self.display_list:
+            # if text is not within frame, do not render
+            if y > self.scroll + HEIGHT: continue
+            if y + VSTEP < self.scroll: continue # y + VSTEP so that characters that are half in frame are still visble
+            # else render
+            self.canvas.create_text(x, y-self.scroll, text=c)
+
+# generate layout of page (where text goes)
+def layout(text):
+    display_list = []
+    cursor_x, cursor_y = HSTEP, VSTEP
+    for c in text:
+        if c == "\n":
+            cursor_x = HSTEP
+            cursor_y += (VSTEP)
+        display_list.append((cursor_x, cursor_y, c))
+        cursor_x += HSTEP
+        if cursor_x >= (WIDTH - HSTEP):
+            cursor_x = HSTEP
+            cursor_y += VSTEP
+
+    return display_list
+
 
 def request(url):
 
     # check if url entered is in view-source mode
     if url.startswith("view-source"):
         url = url[len("view-source:"):]
-        global view_source 
+        global view_source
         view_source = True
 
     # checking if url is valid
@@ -68,7 +113,8 @@ def request(url):
         port = int(port)
 
     s.connect((host, port))
-    s.send("GET {} HTTP/1.0\r\n".format(path).encode("utf8") + "Host: {} \r\n\r\n".format(host).encode("utf8"))
+    s.send("GET {} HTTP/1.0\r\n".format(path).encode("utf8") +
+           "Host: {} \r\n\r\n".format(host).encode("utf8"))
     response = s.makefile("r", encoding="utf8", newline="\r\n")
 
     # split response
@@ -79,9 +125,10 @@ def request(url):
     headers = {}
     while True:
         line = response.readline()
-        if line == "\r\n": break
+        if line == "\r\n":
+            break
         header, value = line.split(":", 1)
-        headers[header.lower()] = value.strip() # removes whitespaces
+        headers[header.lower()] = value.strip()  # removes whitespaces
 
     headers["connection"] = "close"
     headers["user-agent"] = "user-agent-header"
@@ -98,6 +145,7 @@ def request(url):
 
     return headers, body
 
+
 def lex(body):
 
     # printing all text in body (excludes HTML tags and styles)
@@ -106,8 +154,8 @@ def lex(body):
     number_of_braces_count = 0
     text = ""
 
-    #when in view source mode, display everything, including tags
-    if view_source: 
+    # when in view source mode, display everything, including tags
+    if view_source:
         for c in body:
             text += c
     else:
@@ -122,6 +170,9 @@ def lex(body):
                 text += c
     return text
 
+# encryp https connection
+
+
 def encryptConnection(s, host):
     ctx = ssl.create_default_context()
     return ctx.wrap_socket(s, server_hostname=host)
@@ -131,5 +182,5 @@ if __name__ == "__main__":
     browser = Browser()
     # Browser.load(sys.argv[1])
     # Browser.load(browser, "http://example.org/")
-    Browser.load(browser, "https://www.zggdwx.com/xiyou/1.html")
+    Browser.load(browser, "https://browser.engineering/graphics.html")
     tkinter.mainloop()
