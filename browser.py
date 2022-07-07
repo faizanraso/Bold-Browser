@@ -2,8 +2,8 @@ from distutils.sysconfig import customize_compiler
 import sys
 import socket
 import ssl
+from textwrap import fill
 import tkinter
-from tkinter.messagebox import YES
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 10, 18
@@ -15,11 +15,12 @@ class Browser:
     # initializing tkinter gui
     def __init__(self):
         self.window = tkinter.Tk()
-
+        self.webpage_text = ""
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
         self.window.bind("<MouseWheel>", self.mousewheelscroll)
+        self.window.bind("<Configure>", self.resizescreen)
 
         self.canvas = tkinter.Canvas(
             self.window,
@@ -27,7 +28,7 @@ class Browser:
             width=WIDTH
         )
 
-        self.canvas.pack()
+        self.canvas.pack(fill="both", expand=1)
 
     # functions to allow scrolling
     def scrolldown(self, e):
@@ -45,9 +46,20 @@ class Browser:
         if(e.delta == 1 or e.delta == 120):
             self.scrollup(self)
 
+    # function to resize canvas on window size change
+    def resizescreen(self, e):
+        global HEIGHT, WIDTH
+        HEIGHT, WIDTH = self.window.winfo_height(), self.window.winfo_width()
+        self.canvas.config(height=HEIGHT, width=WIDTH)
+        self.canvas.pack(fill="both", expand=1)
+        self.display_list = layout(text=self.webpage_text)
+        self.draw()
+
+
     def load(self, url):
         headers, body = request(url)
         text = lex(body)
+        self.webpage_text = text
         self.display_list = layout(text=text)
         self.draw()
 
