@@ -1,8 +1,6 @@
-from distutils.sysconfig import customize_compiler
 import sys
 import socket
 import ssl
-from textwrap import fill
 import tkinter
 
 WIDTH, HEIGHT = 800, 600
@@ -28,12 +26,13 @@ class Browser:
             width=WIDTH
         )
 
-        self.canvas.pack(fill="both", expand=1)
+        self.canvas.pack(fill=tkinter.BOTH, expand=True)
 
     # functions to allow scrolling
     def scrolldown(self, e):
-        self.scroll += SCROLL_STEP
-        self.draw()
+        if self.scroll < int(self.display_list[len(self.display_list)-1][1]) - (HEIGHT):
+            self.scroll += SCROLL_STEP
+            self.draw()
 
     def scrollup(self, e):
         if self.scroll >= SCROLL_STEP:
@@ -51,7 +50,7 @@ class Browser:
         global HEIGHT, WIDTH
         HEIGHT, WIDTH = self.window.winfo_height(), self.window.winfo_width()
         self.canvas.config(height=HEIGHT, width=WIDTH)
-        self.canvas.pack(fill="both", expand=1)
+        # self.canvas.pack(fill=tkinter.BOTH, expand=True)
         self.display_list = layout(text=self.webpage_text)
         self.draw()
 
