@@ -1,11 +1,12 @@
 import sys
 import socket
 import ssl
-import tkinter
+import tkinter, tkinter.font
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 10, 18
 SCROLL_STEP = 100
+FONT_SIZE = 13
 view_source = False
 
 
@@ -15,11 +16,16 @@ class Browser:
         self.window = tkinter.Tk()
         self.webpage_text = ""
         self.scroll = 0
+        self.bi_times = tkinter.font.Font(
+            family="Verdana",
+            size=16,
+        )
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
         self.window.bind("<MouseWheel>", self.mousewheelscroll)
         self.window.bind("<Configure>", self.resizescreen)
-
+        self.window.bind("<+>", self.zoomin)
+        self.window.bind("<_>", self.zoomout)
         self.canvas = tkinter.Canvas(
             self.window,
             height=HEIGHT,
@@ -54,6 +60,21 @@ class Browser:
         self.display_list = layout(text=self.webpage_text)
         self.draw()
 
+    # zoom in on + press
+    def zoomin(self, e):
+        global HSTEP, VSTEP, FONT_SIZE
+        HSTEP, VSTEP = HSTEP*1.2, VSTEP*1.2 
+        FONT_SIZE *= 1.2
+        self.display_list = layout(text=self.webpage_text)
+        self.draw()
+    
+    # zoom out on - press
+    def zoomout(self, e):
+        global HSTEP, VSTEP, FONT_SIZE
+        HSTEP, VSTEP = HSTEP/1.2, VSTEP/1.2 
+        FONT_SIZE /= 1.2
+        self.display_list = layout(text=self.webpage_text)
+        self.draw()
 
     def load(self, url):
         headers, body = request(url)
@@ -70,7 +91,7 @@ class Browser:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue # y + VSTEP so that characters that are half in frame are still visble
             # else render
-            self.canvas.create_text(x, y-self.scroll, text=c)
+            self.canvas.create_text(x, y-self.scroll, text=c, font=self.bi_times, anchor='nw')
 
 # generate layout of page (where text goes)
 def layout(text):
@@ -182,8 +203,6 @@ def lex(body):
     return text
 
 # encryp https connection
-
-
 def encryptConnection(s, host):
     ctx = ssl.create_default_context()
     return ctx.wrap_socket(s, server_hostname=host)
